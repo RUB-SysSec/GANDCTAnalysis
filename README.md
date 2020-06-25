@@ -167,4 +167,39 @@ python classifer.py test path/to/classifier datasets/ffhq/data_raw_color_test_tf
 
 ### Baselines
 
-Basesline experiments are located in `baselines` directory. Each experiment (i.e., PRNU, Eigenfaces, and kNN) is separated into an individual script (with a common `Classifier` base-class). Usage examples on how to train and test classifier can be found in the corresponding `main` function. To repeat experiments, the constants `DATASETS_DIR` and `RESULTS_DIR` (in the beginning of the file) need to be set accordingly.
+Basesline experiments are located in baselines directory. Each experiment (i.e., PRNU, Eigenfaces, and kNN) can be executed using the common `baseline.py` script. 
+
+```
+usage: baselines.py [-h] [--command {train,test,grid_search}]
+                    [--n_jobs N_JOBS] --datasets DATASETS --datasets_dir
+                    DATASETS_DIR --output_dir OUTPUT_DIR
+                    [--classifier_name CLASSIFIER_NAME]
+                    {knn,prnu,eigenfaces} ...
+
+Example (grid-search):
+  python baselines.py --n_jobs 64 --command grid_search \
+    --output_dir baselines/results \
+    --datasets_dir datasets \
+    --datasets lsun_raw_color_raw_normalized \
+    --datasets lsun_raw_color_dct_log_scaled_normalized \
+    --datasets celeba_raw_color_raw_normalized \
+    --datasets celeba_raw_color_dct_log_scaled_normalized \
+    knn
+
+Example (train):
+  python baselines.py --command train \
+    --output_dir baselines/results \
+    --datasets_dir datasets \
+    --datasets lsun_raw_color_raw_normalized \
+    eigenfaces \
+    --pca_target_variance 0.95 \
+    --C 0.01
+
+Example (test):
+  python3 baselines.py --command test \
+    --output_dir baselines/results \
+    --datasets_dir datasets \
+    --classifier_name classifier_lsun_raw_color_raw_prnu_levels.3_sigma.0.8 \
+    --datasets lsun_raw_color_raw \
+    prnu
+```

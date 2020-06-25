@@ -12,15 +12,7 @@ from src.image_np import dct2, load_image
 from src.math import log_scale, welford, welford_multidimensional
 
 
-def _plot(outpath, name, data, align, **kwargs):
-    if align:
-        # align values for heatmap plots
-        max_value = np.asarray(
-            list(map(lambda x: x.max(), data))).max()
-        min_value = np.asarray(
-            list(map(lambda x: x.min(), data))).min()
-        kwargs.update({"vmin": min_value, "vmax": max_value})
-
+def _plot(outpath, name, data, **kwargs):
     fig, axis = plt.subplots(dpi=300)
     mat = axis.matshow(data, **kwargs)
 
@@ -35,14 +27,23 @@ def _plot(outpath, name, data, align, **kwargs):
     plt.close(fig=fig)
 
 
-def plot_without_labels(outpath, datas, align=True, **kwargs):
+def plot_without_labels(outpath, datas, align=False, **kwargs):
+    if align:
+        # align values for heatmap plots
+        max_value = np.asarray(
+            list(map(lambda x: x[1].max(), datas))).max()
+        min_value = np.asarray(
+            list(map(lambda x: x[1].min(), datas))).min()
+
+        kwargs.update({"vmin": min_value, "vmax": max_value})
+
     for name, data in datas:
         if len(data.shape) > 2 and data.shape[2] == 3:
-            _plot(outpath, f"{name}_red", data[:, :, 0], align, **kwargs)
-            _plot(outpath, f"{name}_green", data[:, :, 1], align, **kwargs)
-            _plot(outpath, f"{name}_blue", data[:, :, 2], align, **kwargs)
+            _plot(outpath, f"{name}_red", data[:, :, 0], **kwargs)
+            _plot(outpath, f"{name}_green", data[:, :, 1], **kwargs)
+            _plot(outpath, f"{name}_blue", data[:, :, 2], **kwargs)
         else:
-            _plot(outpath, name, data, align, **kwargs)
+            _plot(outpath, name, data, **kwargs)
 
 
 class Statistics(object):
@@ -61,6 +62,8 @@ class Statistics(object):
         self.means = list()
         self.stds = list()
         self.mean_differences = list()
+        self.mean_differences_abs = list()
+        self.mean_div = list()
 
     def compute_and_plot(self):
         self._compute_statistics()
@@ -95,9 +98,16 @@ class Statistics(object):
 
             # Other statistics calculated in reference to ref stats
             # mean difference
-            mean_diff = np.abs(log_scale(np.abs(self.ref_mean)) -
-                               log_scale(np.abs(mean)))
+            mean_diff = log_scale(self.ref_mean) - log_scale(mean)
             self.mean_differences.append((f"mean_differnce_{name}", mean_diff))
+
+            mean_diff_abs = np.abs(log_scale(self.ref_mean) - log_scale(mean))
+            self.mean_differences_abs.append(
+                (f"mean_differnce_abs_{name}", mean_diff_abs))
+
+            # mean percentage
+            mean_div = log_scale(self.ref_mean) / log_scale(mean)
+            self.mean_div.append((f"mean_div_{name}", mean_div))
 
     def _plot(self):
         # plotting
@@ -105,11 +115,16 @@ class Statistics(object):
         outpath = f"{outpath}/statisticts/"
         os.makedirs(outpath)
 
-        for cm_name, cm in [("inferno", plt.cm.inferno), ("winter", plt.cm.winter), ("pink", plt.cm.pink), ("coolwarm", plt.cm.coolwarm)]:
+        for cm_name, cm in [("inferno", plt.cm.inferno), ("Spectral", plt.cm.Spectral), ("spring", plt.cm.spring), ("jet", plt.cm.jet), ("coolwarm", plt.cm.coolwarm)]:
             cm_outpath = f"{outpath}/{cm_name}"
-            plot_without_labels(cm_outpath, self.means, cmap=cm)
-            plot_without_labels(cm_outpath, self.stds, cmap=cm)
-            plot_without_labels(cm_outpath, self.mean_differences, cmap=cm)
+            plot_without_labels(cm_outpath, self.means, align=True, cmap=cm)
+            plot_without_labels(cm_outpath, self.stds, align=True, cmap=cm)
+            plot_without_labels(
+                cm_outpath, self.mean_differences, align=True, cmap=cm)
+            plot_without_labels(
+                cm_outpath, self.mean_differences_abs, align=True, cmap=cm)
+            plot_without_labels(
+                cm_outpath, self.mean_div, cmap=cm)
 
 
 def main(args):

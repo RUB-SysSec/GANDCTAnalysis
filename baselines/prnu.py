@@ -7,13 +7,9 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from classifier import Classifier, subset_dataset, read_dataset
+from classifier import Classifier, read_dataset
 from prnu_functions import aligned_cc, extract_multiple_aligned, extract_single
 from utils import PersistentDefaultDict
-
-RESULTS_DIR = Path("~/baselines/results")
-CLASSIFIER_DIR = RESULTS_DIR.joinpath("classifier")
-DATASETS_DIR = Path("~/datasets")
 
 class PRNUClassifier(Classifier):
 
@@ -57,18 +53,14 @@ class PRNUClassifier(Classifier):
         score = correct/(correct+incorrect)
         return score
 
-def grid_search(train_samples, val_samples):
-
-    dataset_names = [ "lsun_raw_prnu_color", 
-                      "celebA_raw_prnu_color" ]
-
-    results = PersistentDefaultDict(RESULTS_DIR.joinpath(f'prnu_grid_search_train.{train_samples}_val.{val_samples}.json'))
-
-    for dataset_name in dataset_names:
+    @staticmethod
+    def grid_search(dataset_name, datasets_dir, output_dir, n_jobs):
+        # init results
+        results = PersistentDefaultDict(output_dir.joinpath(f'prnu_grid_search.json'))
 
         # load data
-        train_data, train_labels = subset_dataset(DATASETS_DIR, f'{dataset_name}_train', train_samples, flatten=False)
-        val_data, val_labels = subset_dataset(DATASETS_DIR, f'{dataset_name}_val', val_samples, flatten=False)
+        train_data, train_labels = read_dataset(datasets_dir, f'{dataset_name}_train', flatten=False)
+        val_data, val_labels = read_dataset(datasets_dir, f'{dataset_name}_val', flatten=False)
         train_data = train_data.astype(np.dtype('uint8'))
         val_data = val_data.astype(np.dtype('uint8'))
 
@@ -83,7 +75,7 @@ def grid_search(train_samples, val_samples):
 
             # skip if result already exists
             if dataset_name in results.as_dict() and \
-               prnu_params_str in results.as_dict()[dataset_name]:
+                prnu_params_str in results.as_dict()[dataset_name]:
                 continue
 
             # train and test classifier
@@ -93,62 +85,33 @@ def grid_search(train_samples, val_samples):
 
             # store result
             results[dataset_name, prnu_params_str] = score
-    
-    print(f"\n[+] Best Results")
-    for dataset_name in dataset_names:
-        # print best results
-        params, acc = sorted(results.as_dict()[dataset_name].items(), key=lambda e: e[1]).pop()
-        print(f'    -> {dataset_name}')
-        print(f'       {params} @ {acc}')
+        
+        return results
 
-def train_classifiers(train_samples):
-
-    dataset_names = [ "lsun_raw_prnu_color", 
-                      "celebA_raw_prnu_color" ]
-
-    for dataset_name in dataset_names:
+    @staticmethod
+    def train_classifier(dataset_name, datasets_dir, output_dir, n_jobs, levels, sigma):
         # classifier name
-        classifier_name = f'prnu_{dataset_name}.{train_samples}'
+        classifier_name = f'classifier_{dataset_name}_prnu_levels.{levels}_sigma.{sigma}'
         print(f"\n{classifier_name.upper()}")
         # load data
-        train_data, train_labels = subset_dataset(DATASETS_DIR, f'{dataset_name}_train', train_samples, flatten=False)
-        val_data, val_labels = subset_dataset(DATASETS_DIR, f'{dataset_name}_val', 10_000, flatten=False)
+        train_data, train_labels = read_dataset(datasets_dir, f'{dataset_name}_train', flatten=False)
         train_data = train_data.astype(np.dtype('uint8'))
-        val_data = val_data.astype(np.dtype('uint8'))
         # train
-        prnu = PRNUClassifier(levels=3, sigma=0.95)
+        prnu = PRNUClassifier(levels, sigma)
         prnu.fit(train_data, train_labels)
-        prnu.save(CLASSIFIER_DIR.joinpath(f'{classifier_name}.pickle'))
+        prnu.save(output_dir.joinpath(f'{classifier_name}.pickle'))
         # test
-        prnu =  PRNUClassifier.load(CLASSIFIER_DIR.joinpath(f'{classifier_name}.pickle'))
-        score = prnu.score(test_data, test_labels)
-        print(f"-> Score {score}")
+        PRNUClassifier.test_classifier(classifier_name, dataset_name, datasets_dir, output_dir, n_jobs)
 
-def test_classifiers():
 
-    dataset_names = [ "lsun_raw_prnu_color", 
-                      "celebA_raw_prnu_color" ]
-
-    results = PersistentDefaultDict(RESULTS_DIR.joinpath(f'final_prnu.json'))
-
-    for dataset_name in dataset_names:
-        # classifier name
-        classifier_name = f'prnu_{dataset_name}.100000'
+    def test_classifier(classifier_name, dataset_name, datasets_dir, output_dir, n_jobs):
         print(f"\n{classifier_name.upper()}")
+        results = PersistentDefaultDict(output_dir.joinpath(f'prnu_test.json'))
         # load data
-        test_data, test_labels = read_dataset(DATASETS_DIR.joinpath(f'{dataset_name}_test'), flatten=False)
+        test_data, test_labels = read_dataset(datasets_dir, f'{dataset_name}_test', flatten=False)
         test_data = test_data.astype(np.dtype('uint8'))
         # load classifier
-        prnu =  PRNUClassifier.load(CLASSIFIER_DIR.joinpath(f'{classifier_name}.pickle'))
+        prnu = PRNUClassifier.load(output_dir.joinpath(classifier_name + '.pickle'))
         # score
         score = prnu.score(test_data, test_labels)
         results[classifier_name] = score
-
-
-if __name__ == "__main__":
-    
-    # print("\n### PRNU grid search")
-    # grid_search(train_samples=100_000, val_samples=10_000)
-
-    print("\n### PRNU Test Classifiers")
-    test_classifiers()

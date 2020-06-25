@@ -2,24 +2,28 @@ import argparse
 import datetime as dt
 import os
 
+import numpy as np
 import tensorflow as tf
+
 from src.dataset import deserialize_data
 from src.models import (build_multinomial_regression,
                         build_multinomial_regression_l1,
                         build_multinomial_regression_l1_l2,
                         build_multinomial_regression_l2, build_resnet,
                         build_simple_cnn, build_simple_nn)
-from tensorflow import keras
-from tensorflow.keras import layers
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 BATCH_SIZE = 32
 
+# LSUN / FFHQ
+# TRAIN_SIZE = 40_000
+# VAL_SIZE = 4_000
+# TEST_SIZE = 10_000
 
 # complete size
-TRAIN_SIZE = 100_000
-VAL_SIZE = 10_000
-TEST_SIZE = 25_000
+TRAIN_SIZE = 500_000
+VAL_SIZE = 50_000
+TEST_SIZE = 150_000
 
 CLASSES = 5
 CHANNEL_DIM = 3
@@ -29,13 +33,19 @@ INPUT_SHAPE = [128, 128, CHANNEL_DIM]
 tf.random.set_seed(1)
 
 
-def load_tfrecord(path):
+def load_tfrecord(path, train=True, unbounded=True):
     """Load tfrecords."""
     raw_image_dataset = tf.data.TFRecordDataset(path)
     dataset = raw_image_dataset.map(lambda x: deserialize_data(
         x, shape=INPUT_SHAPE), num_parallel_calls=AUTOTUNE)
-    dataset = dataset.batch(BATCH_SIZE).repeat().prefetch(AUTOTUNE)
-    return dataset
+    if train:
+        dataset = dataset.take(TRAIN_SIZE)
+
+    dataset = dataset.batch(BATCH_SIZE)
+
+    if unbounded:
+        dataset = dataset.repeat()
+    return dataset.prefetch(AUTOTUNE)
 
 
 def build_model(args):
@@ -48,7 +58,7 @@ def build_model(args):
         if args.MODEL == "resnet":
             model = build_resnet(input_shape, CLASSES)
         elif args.MODEL == "nn":
-            model = build_simple_nn(input_shape, CLASSES)
+            model = build_simple_nn(input_shape, CLASSES, l2=args.l2)
         elif args.MODEL == "cnn":
             model = build_simple_cnn(input_shape, CLASSES)
         elif args.MODEL == "log":
@@ -72,7 +82,7 @@ def build_model(args):
         else:
             loss = tf.keras.losses.sparse_categorical_crossentropy
         metrics = ["acc"]
-        model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate, ),
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, ),
                       loss=loss,
                       metrics=metrics)
 
@@ -98,7 +108,7 @@ def train(args):
         callbacks = None
     else:
         callbacks = [
-            keras.callbacks.TensorBoard(
+            tf.keras.callbacks.TensorBoard(
                 log_dir=log_path,
                 update_freq=update_freq,
             ),
@@ -130,9 +140,10 @@ def train_and_save_model(args):
 
 
 def test(args):
-    test_dataset = load_tfrecord(args.TEST_DATASET)
+    test_dataset = load_tfrecord(args.TEST_DATASET, train=False)
 
-    model = keras.models.load_model(args.MODEL)
+    # load model
+    model = tf.keras.models.load_model(args.MODEL)
     model.summary()
     model.evaluate(test_dataset, steps=TEST_SIZE // BATCH_SIZE)
 

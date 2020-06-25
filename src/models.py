@@ -64,13 +64,13 @@ def build_simple_cnn(input_shape, classes):
     return model
 
 
-def build_simple_nn(input_shape, classes):
+def build_simple_nn(input_shape, classes, l2=0.01):
     inputs = keras.Input(shape=input_shape)
     x = layers.Flatten()(inputs)
-    x = layers.Dense(256, activation='relu',
-                     kernel_regularizer=keras.regularizers.l2(0.1))(x)
     x = layers.Dense(128, activation='relu',
-                     kernel_regularizer=keras.regularizers.l2(0.1))(x)
+                     kernel_regularizer=keras.regularizers.l2(l2))(x)
+    # x = layers.Dense(128, activation='relu',
+    #                  kernel_regularizer=keras.regularizers.l2(l2))(x)
 
     if classes == 1:
         activation = "sigmoid"
@@ -82,7 +82,7 @@ def build_simple_nn(input_shape, classes):
     return model
 
 
-def build_multinomial_regression(input_shape, classes, kernel_regularizer=None):
+def build_multinomial_regression(input_shape, classes, kernel_regularizer=None, dataset=None):
     inputs = keras.Input(shape=input_shape)
     x = layers.Flatten()(inputs)
 
