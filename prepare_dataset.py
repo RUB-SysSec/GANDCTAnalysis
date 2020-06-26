@@ -12,7 +12,7 @@ from src.image_np import dct2, load_image, normalize, scale_image
 from src.math import log_scale, welford
 
 TRAIN_SIZE = 100_000
-VAL_SIZE = 19_999
+VAL_SIZE = 20_000
 TEST_SIZE = 30_000
 # TRAIN_SIZE = 20_000
 # VAL_SIZE = 2_000

@@ -1,6 +1,13 @@
 # Leveraging Frequency Analysis for Deep Fake Image Recognition
 ![logo](media/header.png)
 
+<p>
+<img align="right" width="350"  src="media/spectrafant.png"> 
+</p>
+
+
+This is the code repository accompaning our ICML 2020 paper [Leveraging Frequency Analysis for Deep Fake Image Recognition](https://arxiv.org/abs/2003.08685).
+
 > Deep neural networks can generate images that are astonishingly realistic, 
 > so much so that it is often hard for untrained humans to distinguish them from actual photos.
 > These achievementshave been largely made possible by Generative Adversarial Networks (GANs). 

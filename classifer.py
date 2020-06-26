@@ -15,9 +15,9 @@ from src.models import (build_multinomial_regression,
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 BATCH_SIZE = 32
 
-# LSUN / FFHQ
-# TRAIN_SIZE = 40_000
-# VAL_SIZE = 4_000
+# Upsampling / FFHQ
+# TRAIN_SIZE = 20_000
+# VAL_SIZE = 2_000
 # TEST_SIZE = 10_000
 
 # complete size
@@ -29,7 +29,7 @@ CLASSES = 5
 CHANNEL_DIM = 3
 INPUT_SHAPE = [128, 128, CHANNEL_DIM]
 
-# Fix for conistens results
+# Fix for consistent results
 tf.random.set_seed(1)
 
 
