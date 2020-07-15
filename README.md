@@ -5,7 +5,6 @@
 <img align="right" width="350"  src="media/spectrafant.png"> 
 </p>
 
-
 This is the code repository accompaning our ICML 2020 paper [Leveraging Frequency Analysis for Deep Fake Image Recognition](https://arxiv.org/abs/2003.08685).
 
 > Deep neural networks can generate images that are astonishingly realistic, 
@@ -171,6 +170,36 @@ optional arguments:
 Example:
 python classifer.py test path/to/classifier datasets/ffhq/data_raw_color_test_tf/data.tfrecords -b 32 --image_size 1024
 ```
+
+If you simply want to clasify a directory of images, you can do so by utilizing our `run_classifer.py` script:
+
+```
+usage: run_classifier.py [-h] [--size SIZE] [--batch_size BATCH_SIZE]
+                         [--dct DCT]
+                         MODEL DATA
+
+positional arguments:
+  MODEL                 Model to evaluate.
+  DATA                  Directory to classify.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --size SIZE, -s SIZE  Only use this amount of images.
+  --batch_size BATCH_SIZE, -b BATCH_SIZE
+                        Batch size to use; Default: {batch_size}.
+  --dct DCT, -d DCT     DCT input
+```
+
+Example:
+```
+python run_classifier.py submission_models/ffhq/ridge_pixel ~/datasets/ffhq/fake -s 1000
+```
+
+If you use a DCT-variant of the classifer, you also have to provide an estimate of the mean and variance of the dataset so it can be normalized. They can also be found in the google drive:
+```
+python run_classifier.py submission_models/ffhq/ridge_dct ~/datasets/ffhq/fake -s 1000 -d mean_var/ffhq_mean_var
+```
+
 
 ### Baselines
 
